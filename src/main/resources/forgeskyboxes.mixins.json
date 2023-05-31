@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.foopy.forgeskyboxes.mixin",
+  "compatibilityLevel": "JAVA_17",
+	"refmap": "forgeskyboxes.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+    "skybox.BackgroundRendererMixin",
+    "skybox.FogColorMixin",
+    "skybox.SkyboxRenderMixin",
+    "skybox.SunSkyColorMixin",
+    "skybox.WorldRendererAccess"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
