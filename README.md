@@ -3,16 +3,17 @@
 # ForgeSkyboxes
 
 #### This is an unofficial Forge port of [FabricSkyboxes](https://github.com/AMereBagatelle/fabricskyboxes) by AMereBagatelle
+![](https://cdn-raw.modrinth.com/data/QEF20av3/images/18e4aedfbbec9f471f3b23ac2070e61994e5b0c8.png)
 
 </div>
 
 ## Purpose
 
-For use with [Rubidium](https://github.com/Asek3/Rubidium)
+Enables the specification of custom skyboxes.
 
 ## Installation
 
-Place file in the mod folder after installing Forge.
+Place file in the mod folder with Forge installed.
 
 ## Contribution
 
