@@ -17,7 +17,7 @@ Place file in the mod folder with Forge installed.
 
 ## Contribution
 
-If you encounter any issues, have suggestions for improvements, or would like to contribute to the project, please feel free to open an issue or submit a pull request.
+If you encounter any issues, have suggestions for improvements, or would like to contribute to the project, please feel free to open an [issue](https://github.com/Foopy969/forgeskyboxes/issues) or submit a [pull request](https://github.com/Foopy969/forgeskyboxes/pulls).
 
 Note: Please refrain from reporting issues regarding this port to the original FabricSkyboxes mod. If you have any questions or need support specific to FabricSkyboxes, join the original mod creator's [Discord server](https://discord.gg/quvzkaV) for assistance and to support their work.
 
