@@ -3,6 +3,9 @@ package com.foopy.forgeskyboxes.skyboxes;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+
+import org.joml.Matrix4f;
+
 import com.foopy.forgeskyboxes.SkyboxManager;
 import com.foopy.forgeskyboxes.mixin.skybox.WorldRendererAccess;
 import com.foopy.forgeskyboxes.util.object.Conditions;
@@ -16,11 +19,11 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack.Pose;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexBuffer;
-import com.mojang.math.Matrix4f;
-import com.mojang.math.Vector3f;
+import com.mojang.math.Axis;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.FogRenderer;
@@ -78,22 +81,22 @@ public class OverworldSkybox extends AbstractSkybox {
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
             RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
             matrices.pushPose();
-            matrices.mulPose(Vector3f.XP.rotationDegrees(90.0F));
+            matrices.mulPose(Axis.XP.rotationDegrees(90.0F));
             float i = Mth.sin(skyAngleRadian) < 0.0F ? 180.0F : 0.0F;
-            matrices.mulPose(Vector3f.ZP.rotationDegrees(i));
-            matrices.mulPose(Vector3f.ZP.rotationDegrees(90.0F));
+            matrices.mulPose(Axis.ZP.rotationDegrees(i));
+            matrices.mulPose(Axis.ZP.rotationDegrees(90.0F));
             float j = fs[0];
             float k = fs[1];
             float l = fs[2];
-            Matrix4f matrix4f = matrices.last().pose();
+            Pose matrix4f = matrices.last();
             bufferBuilder.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
-            bufferBuilder.vertex(matrix4f, 0.0F, 100.0F, 0.0F).color(j, k, l, fs[3] * this.alpha).endVertex();
+            bufferBuilder.vertex(matrix4f.pose(), 0.0F, 100.0F, 0.0F).color(j, k, l, fs[3] * this.alpha).endVertex();
 
             for (int n = 0; n <= 16; ++n) {
                 float o = (float) n * (float) (Math.PI * 2) / 16.0F;
                 float p = Mth.sin(o);
                 float q = Mth.cos(o);
-                bufferBuilder.vertex(matrix4f, p * 120.0F, q * 120.0F, -q * 40.0F * fs[3]).color(fs[0], fs[1], fs[2], 0.0F).endVertex();
+                bufferBuilder.vertex(matrix4f.pose(), p * 120.0F, q * 120.0F, -q * 40.0F * fs[3]).color(fs[0], fs[1], fs[2], 0.0F).endVertex();
             }
 
             BufferUploader.drawWithShader(bufferBuilder.end());

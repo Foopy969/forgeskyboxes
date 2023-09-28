@@ -2,7 +2,6 @@ package com.foopy.forgeskyboxes.skyboxes;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.mojang.math.Vector3f;
 import com.foopy.forgeskyboxes.FabricSkyBoxesClient;
 import com.foopy.forgeskyboxes.skyboxes.textured.SquareTexturedSkybox;
 import com.foopy.forgeskyboxes.util.JsonObjectWrapper;
@@ -18,6 +17,8 @@ import net.minecraftforge.registries.RegistryObject;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+
+import org.joml.Vector3f;
 
 public class LegacyDeserializer<T extends AbstractSkybox> {
     public static final DeferredRegister<LegacyDeserializer<? extends AbstractSkybox>> DESERIALIZER = DeferredRegister.create(new ResourceLocation(FabricSkyBoxesClient.MODID, "legacy_skybox_deserializer"), FabricSkyBoxesClient.MODID);

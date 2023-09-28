@@ -3,6 +3,9 @@ package com.foopy.forgeskyboxes.skyboxes;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+
+import org.joml.Matrix4f;
+
 import com.foopy.forgeskyboxes.mixin.skybox.WorldRendererAccess;
 import com.foopy.forgeskyboxes.util.object.Conditions;
 import com.foopy.forgeskyboxes.util.object.Decorations;
@@ -15,10 +18,9 @@ import net.minecraft.client.renderer.GameRenderer;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.math.Axis;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.math.Matrix4f;
-import com.mojang.math.Vector3f;
 
 public class EndSkybox extends AbstractSkybox {
     public static Codec<EndSkybox> CODEC = RecordCodecBuilder.create(instance -> instance.group(Properties.CODEC.fieldOf("properties").forGetter(AbstractSkybox::getProperties), Conditions.CODEC.optionalFieldOf("conditions", Conditions.DEFAULT).forGetter(AbstractSkybox::getConditions), Decorations.CODEC.optionalFieldOf("decorations", Decorations.DEFAULT).forGetter(AbstractSkybox::getDecorations)).apply(instance, EndSkybox::new));
@@ -48,23 +50,23 @@ public class EndSkybox extends AbstractSkybox {
         for (int i = 0; i < 6; ++i) {
             matrices.pushPose();
             if (i == 1) {
-                matrices.mulPose(Vector3f.XP.rotationDegrees(90.0F));
+                matrices.mulPose(Axis.XP.rotationDegrees(90.0F));
             }
 
             if (i == 2) {
-                matrices.mulPose(Vector3f.XP.rotationDegrees(-90.0F));
+                matrices.mulPose(Axis.XP.rotationDegrees(-90.0F));
             }
 
             if (i == 3) {
-                matrices.mulPose(Vector3f.XP.rotationDegrees(180.0F));
+                matrices.mulPose(Axis.XP.rotationDegrees(180.0F));
             }
 
             if (i == 4) {
-                matrices.mulPose(Vector3f.ZP.rotationDegrees(90.0F));
+                matrices.mulPose(Axis.ZP.rotationDegrees(90.0F));
             }
 
             if (i == 5) {
-                matrices.mulPose(Vector3f.ZP.rotationDegrees(-90.0F));
+                matrices.mulPose(Axis.ZP.rotationDegrees(-90.0F));
             }
 
             Matrix4f matrix4f = matrices.last().pose();

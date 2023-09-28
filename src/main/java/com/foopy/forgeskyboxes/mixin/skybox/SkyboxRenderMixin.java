@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Matrix4f;
+import org.joml.Matrix4f;
 
 @Mixin(LevelRenderer.class)
 public abstract class SkyboxRenderMixin {
@@ -18,7 +18,7 @@ public abstract class SkyboxRenderMixin {
     /**
      * Contains the logic for when skyboxes should be rendered.
      */
-    @Inject(method = "renderSky(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/math/Matrix4f;FLnet/minecraft/client/Camera;ZLjava/lang/Runnable;)V", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "renderSky(Lcom/mojang/blaze3d/vertex/PoseStack;Lorg/joml/Matrix4f;FLnet/minecraft/client/Camera;ZLjava/lang/Runnable;)V", at = @At("HEAD"), cancellable = true)
     private void renderCustomSkyboxes(PoseStack matrices, Matrix4f matrix4f, float tickDelta, Camera camera, boolean bl, Runnable runnable, CallbackInfo ci) {
         SkyboxManager skyboxManager = SkyboxManager.getInstance();
         FabricSkyBoxesClient.getLogger().debug("ran mixin " + skyboxManager.getActiveSkyboxes().isEmpty());

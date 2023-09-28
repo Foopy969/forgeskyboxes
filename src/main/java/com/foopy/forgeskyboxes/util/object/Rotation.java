@@ -1,7 +1,8 @@
 package com.foopy.forgeskyboxes.util.object;
 
+import org.joml.Vector3f;
+
 import com.google.common.collect.ImmutableList;
-import com.mojang.math.Vector3f;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -11,7 +12,7 @@ public class Rotation {
     public static final Rotation DECORATIONS = new Rotation(false, new Vector3f(0F, 0F, 0F), new Vector3f(0F, 0F, 0F), 0, 0, 1);
     private static final Codec<Vector3f> VEC_3_F = Codec.FLOAT.listOf().comapFlatMap((list) -> {
         if (list.size() < 3) {
-            return DataResult.error("Incomplete number of elements in vector");
+            return DataResult.error(() -> "Incomplete number of elements in vector");
         }
         return DataResult.success(new Vector3f(list.get(0), list.get(1), list.get(2)));
     }, (vec) -> ImmutableList.of(vec.x(), vec.y(), vec.z()));

@@ -17,7 +17,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.FogRenderer;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
@@ -28,12 +28,15 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack.Pose;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
-import com.mojang.math.Matrix4f;
-import com.mojang.math.Vector3f;
+import com.mojang.math.Axis;
 
 import java.util.Objects;
+
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 /**
  * All classes that implement {@link AbstractSkybox} should
@@ -126,7 +129,7 @@ public abstract class AbstractSkybox implements FSBSkybox {
         Minecraft client = Minecraft.getInstance();
         Objects.requireNonNull(client.level);
         Objects.requireNonNull(client.player);
-        return this.conditions.getBiomes().isEmpty() || this.conditions.getBiomes().contains(client.level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY).getKey(client.level.getBiome(client.player.blockPosition()).get()));
+        return this.conditions.getBiomes().isEmpty() || this.conditions.getBiomes().contains(client.level.registryAccess().registryOrThrow(Registries.BIOME).getKey(client.level.getBiome(client.player.blockPosition()).get()));
     }
 
     /**
@@ -135,7 +138,7 @@ public abstract class AbstractSkybox implements FSBSkybox {
     protected boolean checkDimensions() {
         Minecraft client = Minecraft.getInstance();
         Objects.requireNonNull(client.level);
-        return this.conditions.getDimensions().isEmpty() || this.conditions.getDimensions().contains(client.level.registryAccess().registryOrThrow(Registry.DIMENSION_REGISTRY).getKey(client.level));
+        return this.conditions.getDimensions().isEmpty() || this.conditions.getDimensions().contains(client.level.registryAccess().registryOrThrow(Registries.DIMENSION).getKey(client.level));
     }
 
     /**
@@ -173,7 +176,7 @@ public abstract class AbstractSkybox implements FSBSkybox {
 
         } else {
             if (camera.getEntity() instanceof LivingEntity livingEntity) {
-                return this.conditions.getEffects().stream().noneMatch(identifier -> client.level.registryAccess().ownedRegistry(Registry.MOB_EFFECT_REGISTRY).get().get(identifier) != null && livingEntity.hasEffect(client.level.registryAccess().registry(Registry.MOB_EFFECT_REGISTRY).get().get(identifier)));
+                return this.conditions.getEffects().stream().noneMatch(identifier -> client.level.registryAccess().registryOrThrow(Registries.MOB_EFFECT).get(identifier) != null && livingEntity.hasEffect(client.level.registryAccess().registryOrThrow(Registries.MOB_EFFECT).get(identifier)));
             }
         }
         return true;
@@ -226,7 +229,7 @@ public abstract class AbstractSkybox implements FSBSkybox {
     protected boolean checkWeather() {
         ClientLevel world = Objects.requireNonNull(Minecraft.getInstance().level);
         LocalPlayer player = Objects.requireNonNull(Minecraft.getInstance().player);
-        Biome.Precipitation precipitation = world.getBiome(player.blockPosition()).value().getPrecipitation();
+        Biome.Precipitation precipitation = world.getBiome(player.blockPosition()).value().getPrecipitationAt(player.blockPosition());
         if (this.conditions.getWeathers().size() > 0) {
             if (this.conditions.getWeathers().contains(Weather.THUNDER) && world.isThundering()) {
                 return true;
@@ -257,9 +260,9 @@ public abstract class AbstractSkybox implements FSBSkybox {
         matrices.pushPose();
 
         // axis rotation
-        matrices.mulPose(Vector3f.XP.rotationDegrees(rotationAxis.x()));
-        matrices.mulPose(Vector3f.YP.rotationDegrees(rotationAxis.y()));
-        matrices.mulPose(Vector3f.ZP.rotationDegrees(rotationAxis.z()));
+        matrices.mulPose(Axis.XP.rotationDegrees(rotationAxis.x()));
+        matrices.mulPose(Axis.YP.rotationDegrees(rotationAxis.y()));
+        matrices.mulPose(Axis.ZP.rotationDegrees(rotationAxis.z()));
 
         // Vanilla rotation
         //matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-90.0F));
@@ -271,30 +274,30 @@ public abstract class AbstractSkybox implements FSBSkybox {
         double timeRotationX = this.decorations.getRotation().getRotationSpeedX() != 0F ? this.decorations.getRotation().getSkyboxRotation() ? 360D * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.decorations.getRotation().getRotationSpeedX()), 1) : 360D * world.dimensionType().timeOfDay((long) (24000 * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.decorations.getRotation().getRotationSpeedX()), 1))) : 0D;
         double timeRotationY = this.decorations.getRotation().getRotationSpeedY() != 0F ? this.decorations.getRotation().getSkyboxRotation() ? 360D * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.decorations.getRotation().getRotationSpeedY()), 1) : 360D * world.dimensionType().timeOfDay((long) (24000 * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.decorations.getRotation().getRotationSpeedY()), 1))) : 0D;
         double timeRotationZ = this.decorations.getRotation().getRotationSpeedZ() != 0F ? this.decorations.getRotation().getSkyboxRotation() ? 360D * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.decorations.getRotation().getRotationSpeedZ()), 1) : 360D * world.dimensionType().timeOfDay((long) (24000 * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.decorations.getRotation().getRotationSpeedZ()), 1))) : 0D;
-        matrices.mulPose(Vector3f.XP.rotationDegrees((float) timeRotationX));
-        matrices.mulPose(Vector3f.YP.rotationDegrees((float) timeRotationY));
-        matrices.mulPose(Vector3f.ZP.rotationDegrees((float) timeRotationZ));
+        matrices.mulPose(Axis.XP.rotationDegrees((float) timeRotationX));
+        matrices.mulPose(Axis.YP.rotationDegrees((float) timeRotationY));
+        matrices.mulPose(Axis.ZP.rotationDegrees((float) timeRotationZ));
 
         // axis rotation
-        matrices.mulPose(Vector3f.ZN.rotationDegrees(rotationAxis.z()));
-        matrices.mulPose(Vector3f.YN.rotationDegrees(rotationAxis.y()));
-        matrices.mulPose(Vector3f.XN.rotationDegrees(rotationAxis.x()));
+        matrices.mulPose(Axis.ZN.rotationDegrees(rotationAxis.z()));
+        matrices.mulPose(Axis.YN.rotationDegrees(rotationAxis.y()));
+        matrices.mulPose(Axis.XN.rotationDegrees(rotationAxis.x()));
 
         // static rotation
-        matrices.mulPose(Vector3f.XP.rotationDegrees(rotationStatic.x()));
-        matrices.mulPose(Vector3f.YP.rotationDegrees(rotationStatic.y()));
-        matrices.mulPose(Vector3f.ZP.rotationDegrees(rotationStatic.z()));
+        matrices.mulPose(Axis.XP.rotationDegrees(rotationStatic.x()));
+        matrices.mulPose(Axis.YP.rotationDegrees(rotationStatic.y()));
+        matrices.mulPose(Axis.ZP.rotationDegrees(rotationStatic.z()));
 
-        Matrix4f matrix4f2 = matrices.last().pose();
+        Pose matrix4f2 = matrices.last();
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         // Sun
         if (this.decorations.isSunEnabled()) {
             RenderSystem.setShaderTexture(0, this.decorations.getSunTexture());
             bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-            bufferBuilder.vertex(matrix4f2, -30.0F, 100.0F, -30.0F).uv(0.0F, 0.0F).endVertex();
-            bufferBuilder.vertex(matrix4f2, 30.0F, 100.0F, -30.0F).uv(1.0F, 0.0F).endVertex();
-            bufferBuilder.vertex(matrix4f2, 30.0F, 100.0F, 30.0F).uv(1.0F, 1.0F).endVertex();
-            bufferBuilder.vertex(matrix4f2, -30.0F, 100.0F, 30.0F).uv(0.0F, 1.0F).endVertex();
+            bufferBuilder.vertex(matrix4f2.pose(), -30.0F, 100.0F, -30.0F).uv(0.0F, 0.0F).endVertex();
+            bufferBuilder.vertex(matrix4f2.pose(), 30.0F, 100.0F, -30.0F).uv(1.0F, 0.0F).endVertex();
+            bufferBuilder.vertex(matrix4f2.pose(), 30.0F, 100.0F, 30.0F).uv(1.0F, 1.0F).endVertex();
+            bufferBuilder.vertex(matrix4f2.pose(), -30.0F, 100.0F, 30.0F).uv(0.0F, 1.0F).endVertex();
             BufferUploader.drawWithShader(bufferBuilder.end());
         }
         // Moon
@@ -308,10 +311,10 @@ public abstract class AbstractSkybox implements FSBSkybox {
             float endX = (xCoord + 1) / 4.0F;
             float endY = (yCoord + 1) / 2.0F;
             bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-            bufferBuilder.vertex(matrix4f2, -20.0F, -100.0F, 20.0F).uv(endX, endY).endVertex();
-            bufferBuilder.vertex(matrix4f2, 20.0F, -100.0F, 20.0F).uv(startX, endY).endVertex();
-            bufferBuilder.vertex(matrix4f2, 20.0F, -100.0F, -20.0F).uv(startX, startY).endVertex();
-            bufferBuilder.vertex(matrix4f2, -20.0F, -100.0F, -20.0F).uv(endX, startY).endVertex();
+            bufferBuilder.vertex(matrix4f2.pose(), -20.0F, -100.0F, 20.0F).uv(endX, endY).endVertex();
+            bufferBuilder.vertex(matrix4f2.pose(), 20.0F, -100.0F, 20.0F).uv(startX, endY).endVertex();
+            bufferBuilder.vertex(matrix4f2.pose(), 20.0F, -100.0F, -20.0F).uv(startX, startY).endVertex();
+            bufferBuilder.vertex(matrix4f2.pose(), -20.0F, -100.0F, -20.0F).uv(endX, startY).endVertex();
             BufferUploader.drawWithShader(bufferBuilder.end());
         }
         // Stars

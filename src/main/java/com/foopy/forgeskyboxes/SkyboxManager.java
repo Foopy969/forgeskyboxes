@@ -22,8 +22,10 @@ import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import org.jetbrains.annotations.ApiStatus.Internal;
+import org.joml.Matrix4f;
+
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Matrix4f;
+import com.mojang.blaze3d.vertex.PoseStack.Pose;
 
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -136,8 +138,6 @@ public class SkyboxManager implements FabricSkyBoxesApi {
 
     @Internal
     public void renderSkyboxes(WorldRendererAccess worldRendererAccess, PoseStack matrices, Matrix4f matrix4f, float tickDelta, Camera camera, boolean thickFog) {
-        if (this.activeSkyboxes.isEmpty())
-            return;
         this.activeSkyboxes.forEach(skybox -> {
             this.currentSkybox = skybox;
             skybox.render(worldRendererAccess, matrices, matrix4f, tickDelta, camera, thickFog);

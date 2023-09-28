@@ -10,15 +10,16 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import net.minecraft.client.Camera;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.math.Axis;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.util.Mth;
 
-import com.mojang.math.Matrix4f;
-import com.mojang.math.Vector3f;
-
 import java.util.Objects;
+
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 public abstract class TexturedSkybox extends AbstractSkybox implements RotatableSkybox {
     public Rotation rotation;
@@ -60,9 +61,9 @@ public abstract class TexturedSkybox extends AbstractSkybox implements Rotatable
         double timeRotationZ = this.rotation.getRotationSpeedZ() != 0F ? this.rotation.getSkyboxRotation() ? 360D * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.rotation.getRotationSpeedZ()), 1) : 360D * world.dimensionType().timeOfDay((long) (24000 * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.rotation.getRotationSpeedZ()), 1))) : 0D;
         this.applyTimeRotation(matrices, (float) timeRotationX, (float) timeRotationY, (float) timeRotationZ);
         // static
-        matrices.mulPose(Vector3f.XP.rotationDegrees(rotationStatic.x()));
-        matrices.mulPose(Vector3f.YP.rotationDegrees(rotationStatic.y()));
-        matrices.mulPose(Vector3f.ZP.rotationDegrees(rotationStatic.z()));
+        matrices.mulPose(Axis.XP.rotationDegrees(rotationStatic.x()));
+        matrices.mulPose(Axis.YP.rotationDegrees(rotationStatic.y()));
+        matrices.mulPose(Axis.ZP.rotationDegrees(rotationStatic.z()));
         this.renderSkybox(worldRendererAccess, matrices, tickDelta, camera, thickFog);
         matrices.popPose();
 
@@ -85,15 +86,15 @@ public abstract class TexturedSkybox extends AbstractSkybox implements Rotatable
         // Very ugly, find a better way to do this
         Vector3f timeRotationAxis = this.rotation.getAxis();
 
-        matrices.mulPose(Vector3f.XP.rotationDegrees(timeRotationAxis.x()));
-        matrices.mulPose(Vector3f.YP.rotationDegrees(timeRotationAxis.y()));
-        matrices.mulPose(Vector3f.ZP.rotationDegrees(timeRotationAxis.z()));
-        matrices.mulPose(Vector3f.XP.rotationDegrees(timeRotationX));
-        matrices.mulPose(Vector3f.YP.rotationDegrees(timeRotationY));
-        matrices.mulPose(Vector3f.ZP.rotationDegrees(timeRotationZ));
-        matrices.mulPose(Vector3f.ZN.rotationDegrees(timeRotationAxis.z()));
-        matrices.mulPose(Vector3f.YN.rotationDegrees(timeRotationAxis.y()));
-        matrices.mulPose(Vector3f.XN.rotationDegrees(timeRotationAxis.x()));
+        matrices.mulPose(Axis.XP.rotationDegrees(timeRotationAxis.x()));
+        matrices.mulPose(Axis.YP.rotationDegrees(timeRotationAxis.y()));
+        matrices.mulPose(Axis.ZP.rotationDegrees(timeRotationAxis.z()));
+        matrices.mulPose(Axis.XP.rotationDegrees(timeRotationX));
+        matrices.mulPose(Axis.YP.rotationDegrees(timeRotationY));
+        matrices.mulPose(Axis.ZP.rotationDegrees(timeRotationZ));
+        matrices.mulPose(Axis.ZN.rotationDegrees(timeRotationAxis.z()));
+        matrices.mulPose(Axis.YN.rotationDegrees(timeRotationAxis.y()));
+        matrices.mulPose(Axis.XN.rotationDegrees(timeRotationAxis.x()));
     }
 
     public Blend getBlend() {
