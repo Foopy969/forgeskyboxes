@@ -74,6 +74,7 @@ public class FabricSkyBoxesClient {
             }
         });*/
         MinecraftForge.EVENT_BUS.register(screen);
+        Minecraft.getInstance().reloadResourcePacks();
     }
 
     public void registerBindings(RegisterKeyMappingsEvent event) {
