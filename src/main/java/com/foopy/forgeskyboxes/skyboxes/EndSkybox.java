@@ -3,9 +3,6 @@ package com.foopy.forgeskyboxes.skyboxes;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-
-import org.joml.Matrix4f;
-
 import com.foopy.forgeskyboxes.mixin.skybox.WorldRendererAccess;
 import com.foopy.forgeskyboxes.util.object.Conditions;
 import com.foopy.forgeskyboxes.util.object.Decorations;
@@ -16,14 +13,21 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 
 import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.math.Axis;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.math.Axis;
+
+import org.joml.Matrix4f;
 
 public class EndSkybox extends AbstractSkybox {
-    public static Codec<EndSkybox> CODEC = RecordCodecBuilder.create(instance -> instance.group(Properties.CODEC.fieldOf("properties").forGetter(AbstractSkybox::getProperties), Conditions.CODEC.optionalFieldOf("conditions", Conditions.DEFAULT).forGetter(AbstractSkybox::getConditions), Decorations.CODEC.optionalFieldOf("decorations", Decorations.DEFAULT).forGetter(AbstractSkybox::getDecorations)).apply(instance, EndSkybox::new));
+    public static Codec<EndSkybox> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            Properties.CODEC.fieldOf("properties").forGetter(AbstractSkybox::getProperties),
+            Conditions.CODEC.optionalFieldOf("conditions", Conditions.DEFAULT).forGetter(AbstractSkybox::getConditions),
+            Decorations.CODEC.optionalFieldOf("decorations", Decorations.DEFAULT).forGetter(AbstractSkybox::getDecorations)
+    ).apply(instance, EndSkybox::new));
 
     public EndSkybox(Properties properties, Conditions conditions, Decorations decorations) {
         super(properties, conditions, decorations);
@@ -45,7 +49,7 @@ public class EndSkybox extends AbstractSkybox {
         RenderSystem.depthMask(false);
         RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         RenderSystem.setShaderTexture(0, WorldRendererAccess.getEndSky());
-        Tesselator tessellator = Tesselator.getInstance();
+        bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
 
         for (int i = 0; i < 6; ++i) {
             matrices.pushPose();
@@ -70,14 +74,13 @@ public class EndSkybox extends AbstractSkybox {
             }
 
             Matrix4f matrix4f = matrices.last().pose();
-            bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-            bufferBuilder.vertex(matrix4f, -100.0F, -100.0F, -100.0F).uv(0.0F, 0.0F).color(40 / 255F, 40 / 255F, 40 / 255F, 255 * this.alpha).endVertex();
-            bufferBuilder.vertex(matrix4f, -100.0F, -100.0F, 100.0F).uv(0.0F, 16.0F).color(40 / 255F, 40 / 255F, 40 / 255F, 255 * this.alpha).endVertex();
-            bufferBuilder.vertex(matrix4f, 100.0F, -100.0F, 100.0F).uv(16.0F, 16.0F).color(40 / 255F, 40 / 255F, 40 / 255F, 255 * this.alpha).endVertex();
-            bufferBuilder.vertex(matrix4f, 100.0F, -100.0F, -100.0F).uv(16.0F, 0.0F).color(40 / 255F, 40 / 255F, 40 / 255F, 255 * this.alpha).endVertex();
-            tessellator.end();
+            bufferBuilder.vertex(matrix4f, -100.0F, -100.0F, -100.0F).uv(0.0F, 0.0F).color(40, 40, 40, (int) (255 * this.alpha)).endVertex();
+            bufferBuilder.vertex(matrix4f, -100.0F, -100.0F, 100.0F).uv(0.0F, 16.0F).color(40, 40, 40, (int) (255 * this.alpha)).endVertex();
+            bufferBuilder.vertex(matrix4f, 100.0F, -100.0F, 100.0F).uv(16.0F, 16.0F).color(40, 40, 40, (int) (255 * this.alpha)).endVertex();
+            bufferBuilder.vertex(matrix4f, 100.0F, -100.0F, -100.0F).uv(16.0F, 0.0F).color(40, 40, 40, (int) (255 * this.alpha)).endVertex();
             matrices.popPose();
         }
+        BufferUploader.drawWithShader(bufferBuilder.end());
 
         this.renderDecorations(worldRendererAccess, matrices, projectionMatrix, tickDelta, bufferBuilder, this.alpha);
 

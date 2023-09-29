@@ -4,9 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
-
 import com.foopy.forgeskyboxes.api.FabricSkyBoxesApi;
-import com.foopy.forgeskyboxes.api.skyboxes.FSBSkybox;
 import com.foopy.forgeskyboxes.api.skyboxes.Skybox;
 import com.foopy.forgeskyboxes.mixin.skybox.WorldRendererAccess;
 import com.foopy.forgeskyboxes.skyboxes.AbstractSkybox;
@@ -16,6 +14,9 @@ import com.foopy.forgeskyboxes.util.object.internal.Metadata;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.event.TickEvent.LevelTickEvent;
 import net.minecraftforge.event.TickEvent.Phase;
@@ -24,9 +25,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.jetbrains.annotations.ApiStatus.Internal;
 import org.joml.Matrix4f;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.PoseStack.Pose;
-
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -48,7 +47,6 @@ public class SkyboxManager implements FabricSkyBoxesApi {
     private final Predicate<? super Skybox> renderPredicate = (skybox) -> !this.activeSkyboxes.contains(skybox) && skybox.isActive();
     private Skybox currentSkybox = null;
     private boolean enabled = true;
-    private float totalAlpha = 0f;
 
     public static AbstractSkybox parseSkyboxJson(ResourceLocation id, JsonObjectWrapper objectWrapper) {
         AbstractSkybox skybox;
@@ -84,7 +82,6 @@ public class SkyboxManager implements FabricSkyBoxesApi {
         Skybox skybox = SkyboxManager.parseSkyboxJson(ResourceLocation, new JsonObjectWrapper(jsonObject));
         if (skybox != null) {
             this.addSkybox(ResourceLocation, skybox);
-            this.sortSkybox();
         }
     }
 
@@ -101,13 +98,16 @@ public class SkyboxManager implements FabricSkyBoxesApi {
      * the alphabetical order that Minecraft resources load in.
      * <p>
      * Minecraft's resource loading order example:
-     * "fabricskyboxes:sky/overworld_sky1.json"
-     * "fabricskyboxes:sky/overworld_sky10.json"
-     * "fabricskyboxes:sky/overworld_sky11.json"
-     * "fabricskyboxes:sky/overworld_sky2.json"
+     * "forgeskyboxes:sky/overworld_sky1.json"
+     * "forgeskyboxes:sky/overworld_sky10.json"
+     * "forgeskyboxes:sky/overworld_sky11.json"
+     * "forgeskyboxes:sky/overworld_sky2.json"
      */
     private void sortSkybox() {
-        Map<ResourceLocation, Skybox> newSortedMap = this.skyboxMap.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.comparingInt(Skybox::getPriority))).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (skybox, skybox2) -> skybox, Object2ObjectLinkedOpenHashMap::new));
+        Map<ResourceLocation, Skybox> newSortedMap = this.skyboxMap.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.comparingInt(Skybox::getPriority)))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (skybox, skybox2) -> skybox, Object2ObjectLinkedOpenHashMap::new));
         this.skyboxMap.clear();
         this.skyboxMap.putAll(newSortedMap);
     }
@@ -129,11 +129,6 @@ public class SkyboxManager implements FabricSkyBoxesApi {
     public void clearSkyboxes() {
         this.skyboxMap.clear();
         this.activeSkyboxes.clear();
-    }
-
-    @Internal
-    public float getTotalAlpha() {
-        return this.totalAlpha;
     }
 
     @Internal
@@ -167,29 +162,20 @@ public class SkyboxManager implements FabricSkyBoxesApi {
     }
 
     @SubscribeEvent
-    public static void onLevelTick(LevelTickEvent event) {
-        if (event.phase == Phase.END) {
-            if (Minecraft.getInstance().level == null) {
-                return;
-            }
-            if (Minecraft.getInstance().player == null) {
-                return;
-            }
-            INSTANCE.onEndTick();
-        }
-    }
-
-    public void onEndTick() {
+    public void onEndTick(LevelTickEvent event) {
+        if (event.phase == Phase.START || event.side.isServer()) return;
+        ClientLevel client = Minecraft.getInstance().level;
+        StreamSupport
+                .stream(Iterables.concat(this.skyboxMap.values(), this.permanentSkyboxMap.values()).spliterator(), false)
+                .forEach(skybox -> skybox.tick(client));
+        this.activeSkyboxes.removeIf(skybox -> !skybox.isActive());
         // Add the skyboxes to a activeSkyboxes container so that they can be ordered
         this.skyboxMap.values().stream().filter(this.renderPredicate).forEach(this.activeSkyboxes::add);
         this.permanentSkyboxMap.values().stream().filter(this.renderPredicate).forEach(this.activeSkyboxes::add);
+        this.activeSkyboxes.sort(Comparator.comparingInt(Skybox::getPriority));
+    }
 
-        // Let's not sort by alpha value
-        //this.activeSkyboxes.sort((skybox1, skybox2) -> skybox1 instanceof FSBSkybox fsbSkybox1 && skybox2 instanceof FSBSkybox fsbSkybox2 ? Float.compare(fsbSkybox1.getAlpha(), fsbSkybox2.getAlpha()) : 0);
-        this.activeSkyboxes.sort((skybox1, skybox2) -> skybox1 instanceof FSBSkybox fsbSkybox1 && skybox2 instanceof FSBSkybox fsbSkybox2 ? Integer.compare(fsbSkybox1.getPriority(), fsbSkybox2.getPriority()) : 0);
-
-        this.totalAlpha = (float) StreamSupport.stream(Iterables.concat(this.skyboxMap.values(), this.permanentSkyboxMap.values()).spliterator(), false).filter(FSBSkybox.class::isInstance).map(FSBSkybox.class::cast).mapToDouble(FSBSkybox::updateAlpha).sum();
-
-        this.activeSkyboxes.removeIf(skybox -> !skybox.isActiveLater());
+    public Map<ResourceLocation, Skybox> getSkyboxMap() {
+        return skyboxMap;
     }
 }

@@ -6,7 +6,6 @@ import com.foopy.forgeskyboxes.FabricSkyBoxesClient;
 import com.foopy.forgeskyboxes.skyboxes.textured.SquareTexturedSkybox;
 import com.foopy.forgeskyboxes.util.JsonObjectWrapper;
 import com.foopy.forgeskyboxes.util.object.*;
-
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
 import net.minecraftforge.registries.DeferredRegister;
@@ -14,11 +13,12 @@ import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryBuilder;
 import net.minecraftforge.registries.RegistryObject;
 
+import org.joml.Vector3f;
+import org.joml.Vector3i;
+
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
-
-import org.joml.Vector3f;
 
 public class LegacyDeserializer<T extends AbstractSkybox> {
     public static final DeferredRegister<LegacyDeserializer<? extends AbstractSkybox>> DESERIALIZER = DeferredRegister.create(new ResourceLocation(FabricSkyBoxesClient.MODID, "legacy_skybox_deserializer"), FabricSkyBoxesClient.MODID);
@@ -33,19 +33,43 @@ public class LegacyDeserializer<T extends AbstractSkybox> {
 
     private static void decodeSquareTextured(JsonObjectWrapper wrapper, AbstractSkybox skybox) {
         decodeSharedData(wrapper, skybox);
-        ((SquareTexturedSkybox) skybox).rotation = new Rotation(true, new Vector3f(0f, 0f, 0f), new Vector3f(wrapper.getOptionalArrayFloat("axis", 0, 0), wrapper.getOptionalArrayFloat("axis", 1, 0), wrapper.getOptionalArrayFloat("axis", 2, 0)), 0, 1, 0);
+        ((SquareTexturedSkybox) skybox).rotation = new Rotation(true, new Vector3f(0f, 0f, 0f), new Vector3f(wrapper.getOptionalArrayFloat("axis", 0, 0), wrapper.getOptionalArrayFloat("axis", 1, 0), wrapper.getOptionalArrayFloat("axis", 2, 0)), new Vector3i(0, 0, 0), 0, 1, 0);
         ((SquareTexturedSkybox) skybox).blend = new Blend(wrapper.getOptionalBoolean("shouldBlend", false) ? "add" : "", Blender.DEFAULT);
-        ((SquareTexturedSkybox) skybox).textures = new Textures(new Texture(wrapper.getJsonStringAsId("texture_north")), new Texture(wrapper.getJsonStringAsId("texture_south")), new Texture(wrapper.getJsonStringAsId("texture_east")), new Texture(wrapper.getJsonStringAsId("texture_west")), new Texture(wrapper.getJsonStringAsId("texture_top")), new Texture(wrapper.getJsonStringAsId("texture_bottom")));
+        ((SquareTexturedSkybox) skybox).textures = new Textures(
+                new Texture(wrapper.getJsonStringAsId("texture_north")),
+                new Texture(wrapper.getJsonStringAsId("texture_south")),
+                new Texture(wrapper.getJsonStringAsId("texture_east")),
+                new Texture(wrapper.getJsonStringAsId("texture_west")),
+                new Texture(wrapper.getJsonStringAsId("texture_top")),
+                new Texture(wrapper.getJsonStringAsId("texture_bottom"))
+        );
     }
 
     private static void decodeMonoColor(JsonObjectWrapper wrapper, AbstractSkybox skybox) {
         decodeSharedData(wrapper, skybox);
-        ((MonoColorSkybox) skybox).color = new RGBA(wrapper.get("red").getAsFloat(), wrapper.get("blue").getAsFloat(), wrapper.get("green").getAsFloat());
+        ((MonoColorSkybox) skybox).color = new RGBA(wrapper.get("red").getAsFloat(), wrapper.get("green").getAsFloat(), wrapper.get("blue").getAsFloat());
     }
 
     private static void decodeSharedData(JsonObjectWrapper wrapper, AbstractSkybox skybox) {
         float maxAlpha = wrapper.getOptionalFloat("maxAlpha", 1f);
-        skybox.properties = new Properties.Builder().fade(new Fade(wrapper.get("startFadeIn").getAsInt(), wrapper.get("endFadeIn").getAsInt(), wrapper.get("startFadeOut").getAsInt(), wrapper.get("endFadeOut").getAsInt(), false)).maxAlpha(maxAlpha).transitionInDuration((int) (maxAlpha / wrapper.getOptionalFloat("transitionSpeed", 0.05f))).transitionOutDuration((int) (maxAlpha / wrapper.getOptionalFloat("transitionSpeed", 0.05f))).changeFog(wrapper.getOptionalBoolean("changeFog", false)).fogColors(new RGBA(wrapper.getOptionalFloat("fogRed", 0f), wrapper.getOptionalFloat("fogGreen", 0f), wrapper.getOptionalFloat("fogBlue", 0f))).build();
+        skybox.properties = new Properties.Builder()
+                .fade(new Fade(
+                        wrapper.get("startFadeIn").getAsInt(),
+                        wrapper.get("endFadeIn").getAsInt(),
+                        wrapper.get("startFadeOut").getAsInt(),
+                        wrapper.get("endFadeOut").getAsInt(),
+                        false
+                ))
+                .maxAlpha(maxAlpha)
+                .transitionInDuration((int) (maxAlpha / wrapper.getOptionalFloat("transitionSpeed", 0.05f)))
+                .transitionOutDuration((int) (maxAlpha / wrapper.getOptionalFloat("transitionSpeed", 0.05f)))
+                .changeFog(wrapper.getOptionalBoolean("changeFog", false))
+                .fogColors(new RGBA(
+                        wrapper.getOptionalFloat("fogRed", 0f),
+                        wrapper.getOptionalFloat("fogGreen", 0f),
+                        wrapper.getOptionalFloat("fogBlue", 0f)
+                ))
+                .build();
         // decorations
         skybox.decorations = Decorations.DEFAULT;
         // environment specifications
@@ -88,11 +112,9 @@ public class LegacyDeserializer<T extends AbstractSkybox> {
         }
     }
 
-    /*
     private static <T extends AbstractSkybox> LegacyDeserializer<T> register(LegacyDeserializer<T> deserializer, String name) {
-        return Registry.register(LegacyDeserializer.REGISTRY, new ResourceLocation(FabricSkyBoxesClient.MODID, name), deserializer);
+        return DESERIALIZER.register(name, () -> deserializer).get();
     }
-    */
 
     public BiConsumer<JsonObjectWrapper, AbstractSkybox> getDeserializer() {
         return this.deserializer;

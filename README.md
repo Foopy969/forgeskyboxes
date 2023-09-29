@@ -2,7 +2,7 @@
 
 # ForgeSkyboxes
 
-#### This is an unofficial Forge port of [FabricSkyboxes](https://github.com/AMereBagatelle/fabricskyboxes) by AMereBagatelle
+#### This is an unofficial Forge port of [FabricSkyboxes](https://github.com/AMereBagatelle/forgeskyboxes) by AMereBagatelle
 ![](https://cdn-raw.modrinth.com/data/QEF20av3/images/18e4aedfbbec9f471f3b23ac2070e61994e5b0c8.png)
 _Screeshot taken with the [Hyper realistic sky](https://modrinth.com/resourcepack/hyper-realistic-sky) resource pack._
   

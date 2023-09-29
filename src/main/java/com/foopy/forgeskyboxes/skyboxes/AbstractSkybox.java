@@ -4,7 +4,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.foopy.forgeskyboxes.FabricSkyBoxesClient;
 import com.foopy.forgeskyboxes.api.skyboxes.FSBSkybox;
 import com.foopy.forgeskyboxes.mixin.skybox.WorldRendererAccess;
-import com.foopy.forgeskyboxes.util.Constants;
 import com.foopy.forgeskyboxes.util.Utils;
 import com.foopy.forgeskyboxes.util.object.Conditions;
 import com.foopy.forgeskyboxes.util.object.Decorations;
@@ -13,30 +12,30 @@ import com.foopy.forgeskyboxes.util.object.Weather;
 
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.FogRenderer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.registries.Registries;
+
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexBuffer;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.math.Axis;
+
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.material.FogType;
 
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack.Pose;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexBuffer;
-import com.mojang.math.Axis;
-
-import java.util.Objects;
-
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+
+import java.util.Objects;
 
 /**
  * All classes that implement {@link AbstractSkybox} should
@@ -50,11 +49,13 @@ public abstract class AbstractSkybox implements FSBSkybox {
      * This variable is responsible for fading in/out skyboxes.
      */
     public transient float alpha;
-    protected Properties properties;
+    protected Properties properties = Properties.DEFAULT;
     protected Conditions conditions = Conditions.DEFAULT;
     protected Decorations decorations = Decorations.DEFAULT;
-    private Float fadeInDelta = null;
-    private Float fadeOutDelta = null;
+
+    private int lastTime = -2;
+    private float conditionAlpha = 0f;
+
 
     protected AbstractSkybox() {
     }
@@ -63,6 +64,11 @@ public abstract class AbstractSkybox implements FSBSkybox {
         this.properties = properties;
         this.conditions = conditions;
         this.decorations = decorations;
+    }
+
+    @Override
+    public void tick(ClientLevel ClientLevel) {
+        this.updateAlpha();
     }
 
     /**
@@ -74,43 +80,25 @@ public abstract class AbstractSkybox implements FSBSkybox {
     public final float updateAlpha() {
         int currentTime = (int) (Objects.requireNonNull(Minecraft.getInstance().level).getDayTime() % 24000);
 
-        boolean shouldRender = Utils.isInTimeInterval(currentTime, this.properties.getFade().getStartFadeIn(), this.properties.getFade().getStartFadeOut() - 1);
+        boolean condition = this.checkConditions();
 
-        if ((shouldRender || this.properties.getFade().isAlwaysOn()) && this.checkConditions()) {
-            if (this.alpha < this.properties.getMaxAlpha()) {
-                // Check if currentTime is at the beginning of fadeIn
-                if (this.properties.getFade().getStartFadeIn() == currentTime && this.fadeInDelta == null) {
-                    float f1 = Utils.normalizeTime(this.properties.getMaxAlpha(), currentTime, this.properties.getFade().getStartFadeIn(), this.properties.getFade().getEndFadeIn());
-                    float f2 = Utils.normalizeTime(this.properties.getMaxAlpha(), currentTime + 1, this.properties.getFade().getStartFadeIn(), this.properties.getFade().getEndFadeIn());
-                    this.fadeInDelta = f2 - f1;
-                }
-
-                this.alpha += Objects.requireNonNullElseGet(this.fadeInDelta, () -> this.properties.getMaxAlpha() / this.properties.getTransitionInDuration());
-            } else {
-                this.alpha = this.properties.getMaxAlpha();
-                if (this.fadeInDelta != null) {
-                    this.fadeInDelta = null;
-                }
-            }
+        float fadeAlpha = 1f;
+        if (this.properties.getFade().isAlwaysOn()) {
+            this.conditionAlpha = Utils.calculateConditionAlphaValue(1f, 0f, this.conditionAlpha, condition ? this.properties.getTransitionInDuration() : this.properties.getTransitionOutDuration(), condition);
         } else {
-            if (this.alpha > 0f) {
-                // Check if currentTime is at the beginning of fadeOut
-                if (this.properties.getFade().getStartFadeOut() == currentTime && this.fadeOutDelta == null) {
-                    float f1 = Utils.normalizeTime(this.properties.getMaxAlpha(), currentTime, this.properties.getFade().getStartFadeOut(), this.properties.getFade().getEndFadeOut());
-                    float f2 = Utils.normalizeTime(this.properties.getMaxAlpha(), currentTime + 1, this.properties.getFade().getStartFadeOut(), this.properties.getFade().getEndFadeOut());
-                    this.fadeOutDelta = f2 - f1;
-                }
+            fadeAlpha = Utils.calculateFadeAlphaValue(1f, 0f, currentTime, this.properties.getFade().getStartFadeIn(), this.properties.getFade().getEndFadeIn(), this.properties.getFade().getStartFadeOut(), this.properties.getFade().getEndFadeOut());
 
-                this.alpha -= Objects.requireNonNullElseGet(this.fadeOutDelta, () -> this.properties.getMaxAlpha() / this.properties.getTransitionOutDuration());
+            if (this.lastTime == currentTime - 1 || this.lastTime == currentTime) { // Check if time is ticking or if time is same (doDaylightCycle gamerule)
+                this.conditionAlpha = Utils.calculateConditionAlphaValue(1f, 0f, this.conditionAlpha, condition ? this.properties.getTransitionInDuration() : this.properties.getTransitionOutDuration(), condition);
             } else {
-                this.alpha = 0F;
-                if (this.fadeOutDelta != null) {
-                    this.fadeOutDelta = null;
-                }
+                this.conditionAlpha = Utils.calculateConditionAlphaValue(1f, 0f, this.conditionAlpha, FabricSkyBoxesClient.config().generalSettings.unexpectedTransitionDuration, condition);
             }
         }
 
-        this.alpha = Mth.clamp(this.alpha, 0F, this.properties.getMaxAlpha());
+        this.alpha = (fadeAlpha * this.conditionAlpha) * (this.properties.getMaxAlpha() - this.properties.getMinAlpha()) + this.properties.getMinAlpha();
+
+        this.alpha = Mth.clamp(this.alpha, this.properties.getMinAlpha(), this.properties.getMaxAlpha());
+        this.lastTime = currentTime;
 
         return this.alpha;
     }
@@ -119,7 +107,9 @@ public abstract class AbstractSkybox implements FSBSkybox {
      * @return Whether all conditions were met
      */
     protected boolean checkConditions() {
-        return this.checkDimensions() && this.checkWorlds() && this.checkBiomes() && this.checkXRanges() && this.checkYRanges() && this.checkZRanges() && this.checkWeather() && this.checkEffects() && this.checkLoop();
+        return this.checkDimensions() && this.checkWorlds() && this.checkBiomes() && this.checkXRanges() &&
+                this.checkYRanges() && this.checkZRanges() && this.checkWeather() && this.checkEffects() &&
+                this.checkLoop();
     }
 
     /**
@@ -129,7 +119,7 @@ public abstract class AbstractSkybox implements FSBSkybox {
         Minecraft client = Minecraft.getInstance();
         Objects.requireNonNull(client.level);
         Objects.requireNonNull(client.player);
-        return this.conditions.getBiomes().isEmpty() || this.conditions.getBiomes().contains(client.level.registryAccess().registryOrThrow(Registries.BIOME).getKey(client.level.getBiome(client.player.blockPosition()).get()));
+        return this.conditions.getBiomes().isEmpty() || this.conditions.getBiomes().contains(client.level.registryAccess().registryOrThrow(Registries.BIOME).getKey(client.level.getBiome(client.player.blockPosition()).value()));
     }
 
     /**
@@ -138,7 +128,7 @@ public abstract class AbstractSkybox implements FSBSkybox {
     protected boolean checkDimensions() {
         Minecraft client = Minecraft.getInstance();
         Objects.requireNonNull(client.level);
-        return this.conditions.getDimensions().isEmpty() || this.conditions.getDimensions().contains(client.level.registryAccess().registryOrThrow(Registries.DIMENSION).getKey(client.level));
+        return this.conditions.getDimensions().isEmpty() || this.conditions.getDimensions().contains(client.level.dimension().location());
     }
 
     /**
@@ -147,12 +137,11 @@ public abstract class AbstractSkybox implements FSBSkybox {
     protected boolean checkWorlds() {
         Minecraft client = Minecraft.getInstance();
         Objects.requireNonNull(client.level);
-        FabricSkyBoxesClient.getLogger().debug(this.conditions.getWorlds());
-        return this.conditions.getWorlds().isEmpty() || this.conditions.getWorlds().contains(client.level.dimension().location());
+        return this.conditions.getWorlds().isEmpty() || this.conditions.getWorlds().contains(client.level.dimensionType().effectsLocation());
     }
 
     /*
-    	Check if an effect that should prevent skybox from showing
+		Check if an effect that should prevent skybox from showing
      */
     protected boolean checkEffects() {
         Minecraft client = Minecraft.getInstance();
@@ -162,21 +151,21 @@ public abstract class AbstractSkybox implements FSBSkybox {
 
         if (this.conditions.getEffects().isEmpty()) {
             // Vanilla checks
-            boolean thickFog = client.level.effects().isFoggyAt(camera.getBlockPosition().getX(), camera.getBlockPosition().getY()) || client.gui.getBossOverlay().shouldCreateWorldFog();
+            boolean thickFog = client.level.effects().isFoggyAt(Mth.floor(camera.getBlockPosition().getX()), Mth.floor(camera.getBlockPosition().getY())) || client.gui.getBossOverlay().shouldCreateWorldFog();
             if (thickFog) {
                 // Render skybox in thick fog, enabled by default
                 return this.properties.isRenderInThickFog();
             }
 
-            FogType cameraSubmersionType = camera.getFluidInCamera();
-            if (cameraSubmersionType == FogType.POWDER_SNOW || cameraSubmersionType == FogType.LAVA)
+            FogType fogType = camera.getFluidInCamera();
+            if (fogType == FogType.POWDER_SNOW || fogType == FogType.LAVA)
                 return false;
 
             return !(camera.getEntity() instanceof LivingEntity livingEntity) || (!livingEntity.hasEffect(MobEffects.BLINDNESS) && !livingEntity.hasEffect(MobEffects.DARKNESS));
 
         } else {
             if (camera.getEntity() instanceof LivingEntity livingEntity) {
-                return this.conditions.getEffects().stream().noneMatch(identifier -> client.level.registryAccess().registryOrThrow(Registries.MOB_EFFECT).get(identifier) != null && livingEntity.hasEffect(client.level.registryAccess().registryOrThrow(Registries.MOB_EFFECT).get(identifier)));
+                return this.conditions.getEffects().stream().noneMatch(ResourceLocation -> client.level.registryAccess().registryOrThrow(Registries.MOB_EFFECT).get(ResourceLocation) != null && livingEntity.hasEffect(client.level.registryAccess().registryOrThrow(Registries.MOB_EFFECT).get(ResourceLocation)));
             }
         }
         return true;
@@ -227,20 +216,23 @@ public abstract class AbstractSkybox implements FSBSkybox {
      * @return Whether the current weather is valid for this skybox.
      */
     protected boolean checkWeather() {
-        ClientLevel world = Objects.requireNonNull(Minecraft.getInstance().level);
+        ClientLevel level = Objects.requireNonNull(Minecraft.getInstance().level);
         LocalPlayer player = Objects.requireNonNull(Minecraft.getInstance().player);
-        Biome.Precipitation precipitation = world.getBiome(player.blockPosition()).value().getPrecipitationAt(player.blockPosition());
+        Biome.Precipitation precipitation = level.getBiome(player.blockPosition()).value().getPrecipitationAt(player.blockPosition());
         if (this.conditions.getWeathers().size() > 0) {
-            if (this.conditions.getWeathers().contains(Weather.THUNDER) && world.isThundering()) {
+            if (this.conditions.getWeathers().contains(Weather.THUNDER) && level.isThundering()) {
                 return true;
             }
-            if (this.conditions.getWeathers().contains(Weather.SNOW) && world.isRaining() && precipitation == Biome.Precipitation.SNOW) {
+            if (this.conditions.getWeathers().contains(Weather.RAIN) && level.isRaining()) {
                 return true;
             }
-            if (this.conditions.getWeathers().contains(Weather.RAIN) && world.isRaining() && !world.isThundering()) {
+            if (this.conditions.getWeathers().contains(Weather.SNOW) && level.isRaining() && precipitation == Biome.Precipitation.SNOW) {
                 return true;
             }
-            return this.conditions.getWeathers().contains(Weather.CLEAR) && !world.isRaining();
+            if (this.conditions.getWeathers().contains(Weather.BIOME_RAIN) && level.isRaining() && precipitation == Biome.Precipitation.RAIN) {
+                return true;
+            }
+            return this.conditions.getWeathers().contains(Weather.CLEAR) && !level.isRaining() && !level.isThundering();
         } else {
             return true;
         }
@@ -248,12 +240,12 @@ public abstract class AbstractSkybox implements FSBSkybox {
 
     public abstract SkyboxType<? extends AbstractSkybox> getType();
 
-    public void renderDecorations(WorldRendererAccess worldRendererAccess, PoseStack matrices, Matrix4f matrix4f, float tickDelta, BufferBuilder bufferBuilder, float alpha) {
+    public void renderDecorations(WorldRendererAccess levelRendererAccess, PoseStack matrices, Matrix4f matrix4f, float tickDelta, BufferBuilder bufferBuilder, float alpha) {
         RenderSystem.enableBlend();
         Vector3f rotationStatic = this.decorations.getRotation().getStatic();
         Vector3f rotationAxis = this.decorations.getRotation().getAxis();
-        ClientLevel world = Minecraft.getInstance().level;
-        assert world != null;
+        ClientLevel level = Minecraft.getInstance().level;
+        assert level != null;
 
         // Custom Blender
         this.decorations.getBlend().applyBlendFunc(alpha);
@@ -265,15 +257,15 @@ public abstract class AbstractSkybox implements FSBSkybox {
         matrices.mulPose(Axis.ZP.rotationDegrees(rotationAxis.z()));
 
         // Vanilla rotation
-        //matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-90.0F));
+        //matrices.mulPose(Axis.YP.rotationDegrees(-90.0F));
         // Iris Compat
-        //matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(IrisCompat.getSunPathRotation()));
-        //matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(world.getSkyAngle(tickDelta) * 360.0F * this.decorations.getRotation().getRotationSpeed()));
+        //matrices.mulPose(Axis.ZP.rotationDegrees(IrisCompat.getSunPathRotation()));
+        //matrices.mulPose(Axis.XP.rotationDegrees(level.getSkyAngle(tickDelta) * 360.0F * this.decorations.getRotation().getRotationSpeed()));
 
         // Custom rotation
-        double timeRotationX = this.decorations.getRotation().getRotationSpeedX() != 0F ? this.decorations.getRotation().getSkyboxRotation() ? 360D * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.decorations.getRotation().getRotationSpeedX()), 1) : 360D * world.dimensionType().timeOfDay((long) (24000 * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.decorations.getRotation().getRotationSpeedX()), 1))) : 0D;
-        double timeRotationY = this.decorations.getRotation().getRotationSpeedY() != 0F ? this.decorations.getRotation().getSkyboxRotation() ? 360D * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.decorations.getRotation().getRotationSpeedY()), 1) : 360D * world.dimensionType().timeOfDay((long) (24000 * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.decorations.getRotation().getRotationSpeedY()), 1))) : 0D;
-        double timeRotationZ = this.decorations.getRotation().getRotationSpeedZ() != 0F ? this.decorations.getRotation().getSkyboxRotation() ? 360D * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.decorations.getRotation().getRotationSpeedZ()), 1) : 360D * world.dimensionType().timeOfDay((long) (24000 * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.decorations.getRotation().getRotationSpeedZ()), 1))) : 0D;
+        double timeRotationX = Utils.calculateRotation(this.decorations.getRotation().getRotationSpeedX(), this.decorations.getRotation().getTimeShift().x(), this.decorations.getRotation().getSkyboxRotation(), level);
+        double timeRotationY = Utils.calculateRotation(this.decorations.getRotation().getRotationSpeedY(), this.decorations.getRotation().getTimeShift().y(), this.decorations.getRotation().getSkyboxRotation(), level);
+        double timeRotationZ = Utils.calculateRotation(this.decorations.getRotation().getRotationSpeedZ(), this.decorations.getRotation().getTimeShift().z(), this.decorations.getRotation().getSkyboxRotation(), level);
         matrices.mulPose(Axis.XP.rotationDegrees((float) timeRotationX));
         matrices.mulPose(Axis.YP.rotationDegrees((float) timeRotationY));
         matrices.mulPose(Axis.ZP.rotationDegrees((float) timeRotationZ));
@@ -288,22 +280,22 @@ public abstract class AbstractSkybox implements FSBSkybox {
         matrices.mulPose(Axis.YP.rotationDegrees(rotationStatic.y()));
         matrices.mulPose(Axis.ZP.rotationDegrees(rotationStatic.z()));
 
-        Pose matrix4f2 = matrices.last();
+        Matrix4f matrix4f2 = matrices.last().pose();
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         // Sun
         if (this.decorations.isSunEnabled()) {
             RenderSystem.setShaderTexture(0, this.decorations.getSunTexture());
             bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-            bufferBuilder.vertex(matrix4f2.pose(), -30.0F, 100.0F, -30.0F).uv(0.0F, 0.0F).endVertex();
-            bufferBuilder.vertex(matrix4f2.pose(), 30.0F, 100.0F, -30.0F).uv(1.0F, 0.0F).endVertex();
-            bufferBuilder.vertex(matrix4f2.pose(), 30.0F, 100.0F, 30.0F).uv(1.0F, 1.0F).endVertex();
-            bufferBuilder.vertex(matrix4f2.pose(), -30.0F, 100.0F, 30.0F).uv(0.0F, 1.0F).endVertex();
+            bufferBuilder.vertex(matrix4f2, -30.0F, 100.0F, -30.0F).uv(0.0F, 0.0F).endVertex();
+            bufferBuilder.vertex(matrix4f2, 30.0F, 100.0F, -30.0F).uv(1.0F, 0.0F).endVertex();
+            bufferBuilder.vertex(matrix4f2, 30.0F, 100.0F, 30.0F).uv(1.0F, 1.0F).endVertex();
+            bufferBuilder.vertex(matrix4f2, -30.0F, 100.0F, 30.0F).uv(0.0F, 1.0F).endVertex();
             BufferUploader.drawWithShader(bufferBuilder.end());
         }
         // Moon
         if (this.decorations.isMoonEnabled()) {
             RenderSystem.setShaderTexture(0, this.decorations.getMoonTexture());
-            int moonPhase = world.getMoonPhase();
+            int moonPhase = level.getMoonPhase();
             int xCoord = moonPhase % 4;
             int yCoord = moonPhase / 4 % 2;
             float startX = xCoord / 4.0F;
@@ -311,21 +303,21 @@ public abstract class AbstractSkybox implements FSBSkybox {
             float endX = (xCoord + 1) / 4.0F;
             float endY = (yCoord + 1) / 2.0F;
             bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-            bufferBuilder.vertex(matrix4f2.pose(), -20.0F, -100.0F, 20.0F).uv(endX, endY).endVertex();
-            bufferBuilder.vertex(matrix4f2.pose(), 20.0F, -100.0F, 20.0F).uv(startX, endY).endVertex();
-            bufferBuilder.vertex(matrix4f2.pose(), 20.0F, -100.0F, -20.0F).uv(startX, startY).endVertex();
-            bufferBuilder.vertex(matrix4f2.pose(), -20.0F, -100.0F, -20.0F).uv(endX, startY).endVertex();
+            bufferBuilder.vertex(matrix4f2, -20.0F, -100.0F, 20.0F).uv(endX, endY).endVertex();
+            bufferBuilder.vertex(matrix4f2, 20.0F, -100.0F, 20.0F).uv(startX, endY).endVertex();
+            bufferBuilder.vertex(matrix4f2, 20.0F, -100.0F, -20.0F).uv(startX, startY).endVertex();
+            bufferBuilder.vertex(matrix4f2, -20.0F, -100.0F, -20.0F).uv(endX, startY).endVertex();
             BufferUploader.drawWithShader(bufferBuilder.end());
         }
         // Stars
         if (this.decorations.isStarsEnabled()) {
-            float i = 1.0F - world.getRainLevel(tickDelta);
-            float brightness = world.getStarBrightness(tickDelta) * i;
+            float i = 1.0F - level.getRainLevel(tickDelta);
+            float brightness = level.getStarBrightness(tickDelta) * i;
             if (brightness > 0.0F) {
                 RenderSystem.setShaderColor(brightness, brightness, brightness, brightness);
                 FogRenderer.setupNoFog();
-                worldRendererAccess.getStarsBuffer().bind();
-                worldRendererAccess.getStarsBuffer().drawWithShader(matrices.last().pose(), matrix4f, GameRenderer.getPositionShader());
+                levelRendererAccess.getStarsBuffer().bind();
+                levelRendererAccess.getStarsBuffer().drawWithShader(matrices.last().pose(), matrix4f, GameRenderer.getPositionShader());
                 VertexBuffer.unbind();
             }
         }
@@ -343,12 +335,12 @@ public abstract class AbstractSkybox implements FSBSkybox {
 
     @Override
     public Properties getProperties() {
-        return this.properties; // Properties.ofSkybox(this);
+        return this.properties;
     }
 
     @Override
     public Conditions getConditions() {
-        return this.conditions; // Conditions.ofSkybox(this);
+        return this.conditions;
     }
 
     @Override
@@ -363,16 +355,6 @@ public abstract class AbstractSkybox implements FSBSkybox {
 
     @Override
     public boolean isActive() {
-        return this.getAlpha() > Constants.MINIMUM_ALPHA;
-    }
-
-    @Override
-    public boolean isActiveLater() {
-        final float oldAlpha = this.alpha;
-        if (this.updateAlpha() > Constants.MINIMUM_ALPHA) {
-            this.alpha = oldAlpha;
-            return true;
-        }
-        return false;
+        return this.getAlpha() != 0F;
     }
 }

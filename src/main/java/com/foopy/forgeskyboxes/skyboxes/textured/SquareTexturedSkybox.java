@@ -11,15 +11,23 @@ import com.foopy.forgeskyboxes.skyboxes.AbstractSkybox;
 import com.foopy.forgeskyboxes.skyboxes.SkyboxType;
 import com.foopy.forgeskyboxes.util.object.*;
 import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.PoseStack.Pose;
-import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.math.Axis;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.Tesselator;
+
+import org.joml.Matrix4f;
 
 public class SquareTexturedSkybox extends TexturedSkybox {
-    public static Codec<SquareTexturedSkybox> CODEC = RecordCodecBuilder.create(instance -> instance.group(Properties.CODEC.fieldOf("properties").forGetter(AbstractSkybox::getProperties), Conditions.CODEC.optionalFieldOf("conditions", Conditions.DEFAULT).forGetter(AbstractSkybox::getConditions), Decorations.CODEC.optionalFieldOf("decorations", Decorations.DEFAULT).forGetter(AbstractSkybox::getDecorations), Blend.CODEC.optionalFieldOf("blend", Blend.DEFAULT).forGetter(TexturedSkybox::getBlend), Textures.CODEC.fieldOf("textures").forGetter(s -> s.textures)).apply(instance, SquareTexturedSkybox::new));
+    public static Codec<SquareTexturedSkybox> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            Properties.CODEC.fieldOf("properties").forGetter(AbstractSkybox::getProperties),
+            Conditions.CODEC.optionalFieldOf("conditions", Conditions.DEFAULT).forGetter(AbstractSkybox::getConditions),
+            Decorations.CODEC.optionalFieldOf("decorations", Decorations.DEFAULT).forGetter(AbstractSkybox::getDecorations),
+            Blend.CODEC.optionalFieldOf("blend", Blend.DEFAULT).forGetter(TexturedSkybox::getBlend),
+            Textures.CODEC.fieldOf("textures").forGetter(s -> s.textures)
+    ).apply(instance, SquareTexturedSkybox::new));
     public Textures textures;
 
     public SquareTexturedSkybox() {
@@ -39,7 +47,6 @@ public class SquareTexturedSkybox extends TexturedSkybox {
     public void renderSkybox(WorldRendererAccess worldRendererAccess, PoseStack matrices, float tickDelta, Camera camera, boolean thickFog) {
         Tesselator tessellator = Tesselator.getInstance();
         BufferBuilder bufferBuilder = tessellator.getBuilder();
-
         for (int i = 0; i < 6; ++i) {
             // 0 = bottom
             // 1 = north
@@ -48,9 +55,9 @@ public class SquareTexturedSkybox extends TexturedSkybox {
             // 4 = east
             // 5 = west
             Texture tex = this.textures.byId(i);
-            matrices.pushPose();
-
             RenderSystem.setShaderTexture(0, tex.getTextureId());
+            bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+            matrices.pushPose();
 
             if (i == 1) {
                 matrices.mulPose(Axis.XP.rotationDegrees(90.0F));
@@ -67,14 +74,13 @@ public class SquareTexturedSkybox extends TexturedSkybox {
                 matrices.mulPose(Axis.YP.rotationDegrees(90.0F));
             }
 
-            Pose matrix4f = matrices.last();
-            bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-            bufferBuilder.vertex(matrix4f.pose(), -75.0F, -75.0F, -75.0F).uv(tex.getMinU(), tex.getMinV()).color(1f, 1f, 1f, alpha).endVertex();
-            bufferBuilder.vertex(matrix4f.pose(), -75.0F, -75.0F, 75.0F).uv(tex.getMinU(), tex.getMaxV()).color(1f, 1f, 1f, alpha).endVertex();
-            bufferBuilder.vertex(matrix4f.pose(), 75.0F, -75.0F, 75.0F).uv(tex.getMaxU(), tex.getMaxV()).color(1f, 1f, 1f, alpha).endVertex();
-            bufferBuilder.vertex(matrix4f.pose(), 75.0F, -75.0F, -75.0F).uv(tex.getMaxU(), tex.getMinV()).color(1f, 1f, 1f, alpha).endVertex();
-            tessellator.end();
+            Matrix4f matrix4f = matrices.last().pose();
+            bufferBuilder.vertex(matrix4f, -100.0F, -100.0F, -100.0F).uv(tex.getMinU(), tex.getMinV()).endVertex();
+            bufferBuilder.vertex(matrix4f, -100.0F, -100.0F, 100.0F).uv(tex.getMinU(), tex.getMaxV()).endVertex();
+            bufferBuilder.vertex(matrix4f, 100.0F, -100.0F, 100.0F).uv(tex.getMaxU(), tex.getMaxV()).endVertex();
+            bufferBuilder.vertex(matrix4f, 100.0F, -100.0F, -100.0F).uv(tex.getMaxU(), tex.getMinV()).endVertex();
             matrices.popPose();
+            BufferUploader.drawWithShader(bufferBuilder.end());
         }
     }
 }

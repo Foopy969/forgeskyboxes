@@ -4,22 +4,23 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.foopy.forgeskyboxes.api.skyboxes.RotatableSkybox;
 import com.foopy.forgeskyboxes.mixin.skybox.WorldRendererAccess;
 import com.foopy.forgeskyboxes.skyboxes.AbstractSkybox;
+import com.foopy.forgeskyboxes.util.Utils;
 import com.foopy.forgeskyboxes.util.object.*;
 import net.minecraft.client.Minecraft;
-import com.mojang.blaze3d.vertex.BufferBuilder;
 import net.minecraft.client.Camera;
+
+import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.math.Axis;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.util.Mth;
-
-import java.util.Objects;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+
+import java.util.Objects;
 
 public abstract class TexturedSkybox extends AbstractSkybox implements RotatableSkybox {
     public Rotation rotation;
@@ -56,9 +57,9 @@ public abstract class TexturedSkybox extends AbstractSkybox implements Rotatable
         matrices.pushPose();
 
         // axis + time rotation
-        double timeRotationX = this.rotation.getRotationSpeedX() != 0F ? this.rotation.getSkyboxRotation() ? 360D * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.rotation.getRotationSpeedX()), 1) : 360D * world.dimensionType().timeOfDay((long) (24000 * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.rotation.getRotationSpeedX()), 1))) : 0D;
-        double timeRotationY = this.rotation.getRotationSpeedY() != 0F ? this.rotation.getSkyboxRotation() ? 360D * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.rotation.getRotationSpeedY()), 1) : 360D * world.dimensionType().timeOfDay((long) (24000 * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.rotation.getRotationSpeedY()), 1))) : 0D;
-        double timeRotationZ = this.rotation.getRotationSpeedZ() != 0F ? this.rotation.getSkyboxRotation() ? 360D * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.rotation.getRotationSpeedZ()), 1) : 360D * world.dimensionType().timeOfDay((long) (24000 * Mth.positiveModulo(world.getDayTime() / (24000.0D / this.rotation.getRotationSpeedZ()), 1))) : 0D;
+        double timeRotationX = Utils.calculateRotation(this.rotation.getRotationSpeedX(), this.rotation.getTimeShift().x(), this.rotation.getSkyboxRotation(), world);
+        double timeRotationY = Utils.calculateRotation(this.rotation.getRotationSpeedY(), this.rotation.getTimeShift().y(), this.rotation.getSkyboxRotation(), world);
+        double timeRotationZ = Utils.calculateRotation(this.rotation.getRotationSpeedZ(), this.rotation.getTimeShift().z(), this.rotation.getSkyboxRotation(), world);
         this.applyTimeRotation(matrices, (float) timeRotationX, (float) timeRotationY, (float) timeRotationZ);
         // static
         matrices.mulPose(Axis.XP.rotationDegrees(rotationStatic.x()));
@@ -85,7 +86,6 @@ public abstract class TexturedSkybox extends AbstractSkybox implements Rotatable
     private void applyTimeRotation(PoseStack matrices, float timeRotationX, float timeRotationY, float timeRotationZ) {
         // Very ugly, find a better way to do this
         Vector3f timeRotationAxis = this.rotation.getAxis();
-
         matrices.mulPose(Axis.XP.rotationDegrees(timeRotationAxis.x()));
         matrices.mulPose(Axis.YP.rotationDegrees(timeRotationAxis.y()));
         matrices.mulPose(Axis.ZP.rotationDegrees(timeRotationAxis.z()));
