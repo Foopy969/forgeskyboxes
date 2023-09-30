@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import com.foopy.forgeskyboxes.skyboxes.AbstractSkybox;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Collection;

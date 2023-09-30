@@ -1,7 +1,6 @@
 package com.foopy.forgeskyboxes;
 
 import com.foopy.forgeskyboxes.config.FabricSkyBoxesConfig;
-import com.foopy.forgeskyboxes.config.SkyBoxDebugScreen;
 import com.foopy.forgeskyboxes.resource.SkyboxResourceListener;
 import com.foopy.forgeskyboxes.skyboxes.LegacyDeserializer;
 import com.foopy.forgeskyboxes.skyboxes.SkyboxType;
@@ -11,6 +10,7 @@ import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -65,15 +65,8 @@ public class FabricSkyBoxesClient {
 
         MinecraftForge.EVENT_BUS.register(SkyboxManager.getInstance());
         MinecraftForge.EVENT_BUS.register(config().getKeyBinding());
-        //
-        //KeyBinding keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.forgeskyboxes.toggle.debug_screen", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category.forgeskyboxes"));
-        SkyBoxDebugScreen screen = new SkyBoxDebugScreen(Component.literal("Skybox Debug Screen"));
-        /*ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (keyBinding.wasPressed()) {
-                client.setScreen(screen);
-            }
-        });*/
-        MinecraftForge.EVENT_BUS.register(screen);
+
+        Minecraft.getInstance().reloadResourcePacks();
     }
 
     public void registerBindings(RegisterKeyMappingsEvent event) {
