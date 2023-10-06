@@ -2,19 +2,19 @@ package com.foopy.forgeskyboxes.skyboxes;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.mojang.math.Vector3f;
 import com.foopy.forgeskyboxes.FabricSkyBoxesClient;
 import com.foopy.forgeskyboxes.skyboxes.textured.SquareTexturedSkybox;
 import com.foopy.forgeskyboxes.util.JsonObjectWrapper;
 import com.foopy.forgeskyboxes.util.object.*;
+
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryBuilder;
 import net.minecraftforge.registries.RegistryObject;
-
-import org.joml.Vector3f;
-import org.joml.Vector3i;
 
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -33,7 +33,7 @@ public class LegacyDeserializer<T extends AbstractSkybox> {
 
     private static void decodeSquareTextured(JsonObjectWrapper wrapper, AbstractSkybox skybox) {
         decodeSharedData(wrapper, skybox);
-        ((SquareTexturedSkybox) skybox).rotation = new Rotation(true, new Vector3f(0f, 0f, 0f), new Vector3f(wrapper.getOptionalArrayFloat("axis", 0, 0), wrapper.getOptionalArrayFloat("axis", 1, 0), wrapper.getOptionalArrayFloat("axis", 2, 0)), new Vector3i(0, 0, 0), 0, 1, 0);
+        ((SquareTexturedSkybox) skybox).rotation = new Rotation(true, new Vector3f(0f, 0f, 0f), new Vector3f(wrapper.getOptionalArrayFloat("axis", 0, 0), wrapper.getOptionalArrayFloat("axis", 1, 0), wrapper.getOptionalArrayFloat("axis", 2, 0)), new BlockPos(0, 0, 0), 0, 1, 0);
         ((SquareTexturedSkybox) skybox).blend = new Blend(wrapper.getOptionalBoolean("shouldBlend", false) ? "add" : "", Blender.DEFAULT);
         ((SquareTexturedSkybox) skybox).textures = new Textures(
                 new Texture(wrapper.getJsonStringAsId("texture_north")),

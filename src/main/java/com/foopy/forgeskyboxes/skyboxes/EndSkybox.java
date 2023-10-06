@@ -18,9 +18,11 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.math.Axis;
+import com.mojang.math.Matrix4f;
+import com.mojang.math.Vector3f;
 
-import org.joml.Matrix4f;
+
+
 
 public class EndSkybox extends AbstractSkybox {
     public static Codec<EndSkybox> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -54,23 +56,23 @@ public class EndSkybox extends AbstractSkybox {
         for (int i = 0; i < 6; ++i) {
             matrices.pushPose();
             if (i == 1) {
-                matrices.mulPose(Axis.XP.rotationDegrees(90.0F));
+                matrices.mulPose(Vector3f.XP.rotationDegrees(90.0F));
             }
 
             if (i == 2) {
-                matrices.mulPose(Axis.XP.rotationDegrees(-90.0F));
+                matrices.mulPose(Vector3f.XP.rotationDegrees(-90.0F));
             }
 
             if (i == 3) {
-                matrices.mulPose(Axis.XP.rotationDegrees(180.0F));
+                matrices.mulPose(Vector3f.XP.rotationDegrees(180.0F));
             }
 
             if (i == 4) {
-                matrices.mulPose(Axis.ZP.rotationDegrees(90.0F));
+                matrices.mulPose(Vector3f.ZP.rotationDegrees(90.0F));
             }
 
             if (i == 5) {
-                matrices.mulPose(Axis.ZP.rotationDegrees(-90.0F));
+                matrices.mulPose(Vector3f.ZP.rotationDegrees(-90.0F));
             }
 
             Matrix4f matrix4f = matrices.last().pose();

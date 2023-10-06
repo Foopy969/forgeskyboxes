@@ -7,7 +7,8 @@ import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.level.material.FogType;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import org.joml.Matrix4f;
+import com.mojang.math.Matrix4f;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.gen.Invoker;
@@ -24,7 +25,7 @@ public abstract class SkyboxRenderMixin {
     /**
      * Contains the logic for when skyboxes should be rendered.
      */
-    @Inject(method = "renderSky(Lcom/mojang/blaze3d/vertex/PoseStack;Lorg/joml/Matrix4f;FLnet/minecraft/client/Camera;ZLjava/lang/Runnable;)V", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "renderSky(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/math/Matrix4f;FLnet/minecraft/client/Camera;ZLjava/lang/Runnable;)V", at = @At("HEAD"), cancellable = true)
     private void renderCustomSkyboxes(PoseStack matrices, Matrix4f matrix4f, float tickDelta, Camera camera, boolean bl, Runnable runnable, CallbackInfo ci) {
         SkyboxManager skyboxManager = SkyboxManager.getInstance();
         if (skyboxManager.isEnabled() && !skyboxManager.getActiveSkyboxes().isEmpty()) {

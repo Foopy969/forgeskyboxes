@@ -14,7 +14,7 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.FogRenderer;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.Registry;
 
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -22,7 +22,8 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.math.Axis;
+import com.mojang.math.Matrix4f;
+import com.mojang.math.Vector3f;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
@@ -32,8 +33,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.material.FogType;
 
-import org.joml.Matrix4f;
-import org.joml.Vector3f;
 
 import java.util.Objects;
 
@@ -119,7 +118,7 @@ public abstract class AbstractSkybox implements FSBSkybox {
         Minecraft client = Minecraft.getInstance();
         Objects.requireNonNull(client.level);
         Objects.requireNonNull(client.player);
-        return this.conditions.getBiomes().isEmpty() || this.conditions.getBiomes().contains(client.level.registryAccess().registryOrThrow(Registries.BIOME).getKey(client.level.getBiome(client.player.blockPosition()).value()));
+        return this.conditions.getBiomes().isEmpty() || this.conditions.getBiomes().contains(client.level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY).getKey(client.level.getBiome(client.player.blockPosition()).value()));
     }
 
     /**
@@ -165,7 +164,7 @@ public abstract class AbstractSkybox implements FSBSkybox {
 
         } else {
             if (camera.getEntity() instanceof LivingEntity livingEntity) {
-                return this.conditions.getEffects().stream().noneMatch(ResourceLocation -> client.level.registryAccess().registryOrThrow(Registries.MOB_EFFECT).get(ResourceLocation) != null && livingEntity.hasEffect(client.level.registryAccess().registryOrThrow(Registries.MOB_EFFECT).get(ResourceLocation)));
+                return this.conditions.getEffects().stream().noneMatch(ResourceLocation -> client.level.registryAccess().registryOrThrow(Registry.MOB_EFFECT_REGISTRY).get(ResourceLocation) != null && livingEntity.hasEffect(client.level.registryAccess().registryOrThrow(Registry.MOB_EFFECT_REGISTRY).get(ResourceLocation)));
             }
         }
         return true;
@@ -218,7 +217,7 @@ public abstract class AbstractSkybox implements FSBSkybox {
     protected boolean checkWeather() {
         ClientLevel level = Objects.requireNonNull(Minecraft.getInstance().level);
         LocalPlayer player = Objects.requireNonNull(Minecraft.getInstance().player);
-        Biome.Precipitation precipitation = level.getBiome(player.blockPosition()).value().getPrecipitationAt(player.blockPosition());
+        Biome.Precipitation precipitation = level.getBiome(player.blockPosition()).value().getPrecipitation();
         if (this.conditions.getWeathers().size() > 0) {
             if (this.conditions.getWeathers().contains(Weather.THUNDER) && level.isThundering()) {
                 return true;
@@ -252,33 +251,33 @@ public abstract class AbstractSkybox implements FSBSkybox {
         matrices.pushPose();
 
         // axis rotation
-        matrices.mulPose(Axis.XP.rotationDegrees(rotationAxis.x()));
-        matrices.mulPose(Axis.YP.rotationDegrees(rotationAxis.y()));
-        matrices.mulPose(Axis.ZP.rotationDegrees(rotationAxis.z()));
+        matrices.mulPose(Vector3f.XP.rotationDegrees(rotationAxis.x()));
+        matrices.mulPose(Vector3f.YP.rotationDegrees(rotationAxis.y()));
+        matrices.mulPose(Vector3f.ZP.rotationDegrees(rotationAxis.z()));
 
         // Vanilla rotation
-        //matrices.mulPose(Axis.YP.rotationDegrees(-90.0F));
+        //matrices.mulPose(Vector3f.YP.rotationDegrees(-90.0F));
         // Iris Compat
-        //matrices.mulPose(Axis.ZP.rotationDegrees(IrisCompat.getSunPathRotation()));
-        //matrices.mulPose(Axis.XP.rotationDegrees(level.getSkyAngle(tickDelta) * 360.0F * this.decorations.getRotation().getRotationSpeed()));
+        //matrices.mulPose(Vector3f.ZP.rotationDegrees(IrisCompat.getSunPathRotation()));
+        //matrices.mulPose(Vector3f.XP.rotationDegrees(level.getSkyAngle(tickDelta) * 360.0F * this.decorations.getRotation().getRotationSpeed()));
 
         // Custom rotation
-        double timeRotationX = Utils.calculateRotation(this.decorations.getRotation().getRotationSpeedX(), this.decorations.getRotation().getTimeShift().x(), this.decorations.getRotation().getSkyboxRotation(), level);
-        double timeRotationY = Utils.calculateRotation(this.decorations.getRotation().getRotationSpeedY(), this.decorations.getRotation().getTimeShift().y(), this.decorations.getRotation().getSkyboxRotation(), level);
-        double timeRotationZ = Utils.calculateRotation(this.decorations.getRotation().getRotationSpeedZ(), this.decorations.getRotation().getTimeShift().z(), this.decorations.getRotation().getSkyboxRotation(), level);
-        matrices.mulPose(Axis.XP.rotationDegrees((float) timeRotationX));
-        matrices.mulPose(Axis.YP.rotationDegrees((float) timeRotationY));
-        matrices.mulPose(Axis.ZP.rotationDegrees((float) timeRotationZ));
+        double timeRotationX = Utils.calculateRotation(this.decorations.getRotation().getRotationSpeedX(), this.decorations.getRotation().getTimeShift().getX(), this.decorations.getRotation().getSkyboxRotation(), level);
+        double timeRotationY = Utils.calculateRotation(this.decorations.getRotation().getRotationSpeedY(), this.decorations.getRotation().getTimeShift().getY(), this.decorations.getRotation().getSkyboxRotation(), level);
+        double timeRotationZ = Utils.calculateRotation(this.decorations.getRotation().getRotationSpeedZ(), this.decorations.getRotation().getTimeShift().getZ(), this.decorations.getRotation().getSkyboxRotation(), level);
+        matrices.mulPose(Vector3f.XP.rotationDegrees((float) timeRotationX));
+        matrices.mulPose(Vector3f.YP.rotationDegrees((float) timeRotationY));
+        matrices.mulPose(Vector3f.ZP.rotationDegrees((float) timeRotationZ));
 
         // axis rotation
-        matrices.mulPose(Axis.ZN.rotationDegrees(rotationAxis.z()));
-        matrices.mulPose(Axis.YN.rotationDegrees(rotationAxis.y()));
-        matrices.mulPose(Axis.XN.rotationDegrees(rotationAxis.x()));
+        matrices.mulPose(Vector3f.ZN.rotationDegrees(rotationAxis.z()));
+        matrices.mulPose(Vector3f.YN.rotationDegrees(rotationAxis.y()));
+        matrices.mulPose(Vector3f.XN.rotationDegrees(rotationAxis.x()));
 
         // static rotation
-        matrices.mulPose(Axis.XP.rotationDegrees(rotationStatic.x()));
-        matrices.mulPose(Axis.YP.rotationDegrees(rotationStatic.y()));
-        matrices.mulPose(Axis.ZP.rotationDegrees(rotationStatic.z()));
+        matrices.mulPose(Vector3f.XP.rotationDegrees(rotationStatic.x()));
+        matrices.mulPose(Vector3f.YP.rotationDegrees(rotationStatic.y()));
+        matrices.mulPose(Vector3f.ZP.rotationDegrees(rotationStatic.z()));
 
         Matrix4f matrix4f2 = matrices.last().pose();
         RenderSystem.setShader(GameRenderer::getPositionTexShader);

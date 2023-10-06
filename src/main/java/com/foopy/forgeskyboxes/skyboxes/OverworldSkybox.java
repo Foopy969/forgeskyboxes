@@ -19,7 +19,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.math.Axis;
+import com.mojang.math.Matrix4f;
+import com.mojang.math.Vector3f;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.FogRenderer;
@@ -28,7 +29,7 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
-import org.joml.Matrix4f;
+
 
 public class OverworldSkybox extends AbstractSkybox {
     public static Codec<OverworldSkybox> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -83,10 +84,10 @@ public class OverworldSkybox extends AbstractSkybox {
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
             RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
             matrices.pushPose();
-            matrices.mulPose(Axis.XP.rotationDegrees(90.0F));
+            matrices.mulPose(Vector3f.XP.rotationDegrees(90.0F));
             float i = Mth.sin(skyAngleRadian) < 0.0F ? 180.0F : 0.0F;
-            matrices.mulPose(Axis.ZP.rotationDegrees(i));
-            matrices.mulPose(Axis.ZP.rotationDegrees(90.0F));
+            matrices.mulPose(Vector3f.ZP.rotationDegrees(i));
+            matrices.mulPose(Vector3f.ZP.rotationDegrees(90.0F));
             float j = fs[0];
             float k = fs[1];
             float l = fs[2];

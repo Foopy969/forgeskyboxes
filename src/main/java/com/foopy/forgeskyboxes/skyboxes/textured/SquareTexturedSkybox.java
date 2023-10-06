@@ -14,11 +14,12 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.math.Axis;
+import com.mojang.math.Matrix4f;
+import com.mojang.math.Vector3f;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 
-import org.joml.Matrix4f;
+
 
 public class SquareTexturedSkybox extends TexturedSkybox {
     public static Codec<SquareTexturedSkybox> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -60,18 +61,18 @@ public class SquareTexturedSkybox extends TexturedSkybox {
             matrices.pushPose();
 
             if (i == 1) {
-                matrices.mulPose(Axis.XP.rotationDegrees(90.0F));
+                matrices.mulPose(Vector3f.XP.rotationDegrees(90.0F));
             } else if (i == 2) {
-                matrices.mulPose(Axis.XP.rotationDegrees(-90.0F));
-                matrices.mulPose(Axis.YP.rotationDegrees(180.0F));
+                matrices.mulPose(Vector3f.XP.rotationDegrees(-90.0F));
+                matrices.mulPose(Vector3f.YP.rotationDegrees(180.0F));
             } else if (i == 3) {
-                matrices.mulPose(Axis.XP.rotationDegrees(180.0F));
+                matrices.mulPose(Vector3f.XP.rotationDegrees(180.0F));
             } else if (i == 4) {
-                matrices.mulPose(Axis.ZP.rotationDegrees(90.0F));
-                matrices.mulPose(Axis.YP.rotationDegrees(-90.0F));
+                matrices.mulPose(Vector3f.ZP.rotationDegrees(90.0F));
+                matrices.mulPose(Vector3f.YP.rotationDegrees(-90.0F));
             } else if (i == 5) {
-                matrices.mulPose(Axis.ZP.rotationDegrees(-90.0F));
-                matrices.mulPose(Axis.YP.rotationDegrees(90.0F));
+                matrices.mulPose(Vector3f.ZP.rotationDegrees(-90.0F));
+                matrices.mulPose(Vector3f.YP.rotationDegrees(90.0F));
             }
 
             Matrix4f matrix4f = matrices.last().pose();
